@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác Thực Anti-Bot & Gửi Mã Qua Email</title>
+    <!-- Nhúng thư viện hCaptcha API -->
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="email"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .h-captcha { display: flex; justify-content: center; margin-bottom: 15px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:disabled { background-color: #a8d1ff; cursor: not-allowed; }
+        .status { margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; font-size: 14px; display: none; }
+        .status.success { background-color: #d4edda; color: #155724; display: block; }
+        .status.error { background-color: #f8d7da; color: #721c24; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Xác Minh Tài Khoản</h2>
+    
+    <div class="form-group">
+        <label for="emailInput">Địa chỉ Email:</label>
+        <input type="email" id="emailInput" placeholder="nhap-email@example.com" required>
+    </div>
+
+    <!-- Khung hiển thị hCaptcha -->
+    <div class="h-captcha" data-sitekey="09f81f90-6c38-4f40-abb4-0e24d0a6f834"></div>
+
+    <button id="sendBtn">Gửi Mã Xác Nhận</button>
+
+    <div id="status" class="status"></div>
+</div>
+
+<script>
+class CaptchaAuthManager {
+    constructor(config) {
+        this.siteKey = config.siteKey;
+        this.workerUrl = config.workerUrl;
+        this.emailInput = document.getElementById(config.emailInputId);
+        this.sendBtn = document.getElementById(config.sendBtnId);
+        this.statusDiv = document.getElementById(config.statusDivId);
+
+        this.initEvents();
+    }
+
+    initEvents() {
+        this.sendBtn.addEventListener('click', () => this.handleSendCode());
+    }
+
+    showStatus(message, isSuccess) {
+        this.statusDiv.textContent = message;
+        this.statusDiv.className = `status ${isSuccess ? 'success' : 'error'}`;
+    }
+
+    async handleSendCode() {
+        const email = this.emailInput.value.trim();
+        
+        // 1. Lấy response token từ hCaptcha
+        const hCaptchaToken = typeof hcaptcha !== 'undefined' ? hcaptcha.getResponse() : '';
+
+        // Kiểm tra đầu vào
+        if (!email) {
+            this.showStatus('Vui lòng nhập địa chỉ Email!', false);
+            return;
+        }
+
+        if (!hCaptchaToken) {
+            this.showStatus('Vui lòng hoàn thành xác minh Captcha!', false);
+            return;
+        }
+
+        // Tắt nút gửi để tránh bấm nhiều lần
+        this.sendBtn.disabled = true;
+        this.showStatus('Đang xử lý và gửi email...', true);
+
+        try {
+            // 2. Gửi request sang Cloudflare Worker Backend
+            const response = await fetch(this.workerUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    hCaptchaToken: hCaptchaToken
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showStatus(result.message || 'Mã xác minh đã được gửi vào Email của bạn!', true);
+                // Reset lại ô Captcha sau khi gửi thành công
+                if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
+            } else {
+                this.showStatus(result.message || 'Xác minh thất bại. Vui lòng thử lại!', false);
+                if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
+            }
+        } catch (error) {
+            this.showStatus('Lỗi kết nối tới Server. Vui lòng thử lại!', false);
+            if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
+        } finally {
+            this.sendBtn.disabled = false;
+        }
+    }
+}
+
+// Khởi tạo Class khi trang đã tải xong
+window.addEventListener('DOMContentLoaded', () => {
+    new CaptchaAuthManager({
+        siteKey: "09f81f90-6c38-4f40-abb4-0e24d0a6f834",
+        workerUrl: "https://withered-morning-f487.cammanhtuong.workers.dev",
+        emailInputId: "emailInput",
+        sendBtnId: "sendBtn",
+        statusDivId: "status"
+    });
+});
+</script>
+
+</body>
+</html>
