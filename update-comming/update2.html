@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác Minh Anti-Bot</title>
+    <!-- Font Inter & Google Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <!-- JS hCaptcha SDK -->
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #07090e;
+            color: #f0f6fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: #0e121b;
+            border: 1px solid #1e2638;
+            border-radius: 12px;
+            padding: 32px 24px 20px 24px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .icon-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background-color: rgba(35, 134, 54, 0.15);
+            border-radius: 50%;
+            color: #3fb950;
+            margin-bottom: 12px;
+        }
+
+        .icon-badge .material-symbols-outlined { font-size: 26px; }
+
+        .title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #8b949e;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #c9d1d9;
+            margin-bottom: 6px;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: #05070a;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            color: #f0f6fc;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="email"]:focus { border-color: #388bfd; }
+
+        /* Khung hiển thị hCaptcha */
+        .h-captcha-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+            min-height: 78px; /* Đảm bảo đủ chiều cao render */
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #c9d1d9;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .submit-btn:hover {
+            background-color: #21262d;
+            border-color: #8b949e;
+            color: #ffffff;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+            text-align: left;
+        }
+
+        .status.success {
+            display: block;
+            background-color: rgba(46, 160, 67, 0.15);
+            border: 1px solid rgba(46, 160, 67, 0.4);
+            color: #3fb950;
+        }
+
+        .status.error {
+            display: block;
+            background-color: rgba(248, 81, 73, 0.15);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            color: #f85149;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 11px;
+            border-top: 1px solid #161b22;
+            padding-top: 16px;
+        }
+
+        .footer-links a { color: #6e7681; text-decoration: none; }
+        .footer-links a:hover { color: #8b949e; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="icon-badge">
+            <span class="material-symbols-outlined">verified_user</span>
+        </div>
+
+        <h1 class="title">Xác Minh Anti-Bot</h1>
+        <p class="subtitle">Nhập địa chỉ Email và hoàn tất Captcha bên dưới để nhận mã xác minh.</p>
+
+        <div class="form-group">
+            <label for="emailInput">Địa chỉ Email</label>
+            <input type="email" id="emailInput" placeholder="name@example.com" required>
+        </div>
+
+        <!-- Ô Captcha có thuộc tính data-theme="dark" -->
+        <div class="h-captcha-container">
+            <div class="h-captcha" id="captchaWidget" data-sitekey="09f81f90-6c38-4f40-abb4-0e24d0a6f834" data-theme="dark"></div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <button id="sendBtn" class="submit-btn">Gửi Mã Xác Nhận</button>
+
+        <div class="footer-links">
+            <a href="#">Report</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Privacy Policy</a>
+        </div>
+    </div>
+
+    <script>
+    class CaptchaAuthManager {
+        constructor(config) {
+            this.siteKey = config.siteKey;
+            this.workerUrl = config.workerUrl;
+            this.emailInput = document.getElementById(config.emailInputId);
+            this.sendBtn = document.getElementById(config.sendBtnId);
+            this.statusDiv = document.getElementById(config.statusDivId);
+
+            this.initEvents();
+        }
+
+        initEvents() {
+            this.sendBtn.addEventListener('click', () => this.handleSendCode());
+        }
+
+        showStatus(message, isSuccess) {
+            this.statusDiv.textContent = message;
+            this.statusDiv.className = `status ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        async handleSendCode() {
+            const email = this.emailInput.value.trim();
+            const hCaptchaToken = typeof hcaptcha !== 'undefined' ? hcaptcha.getResponse() : '';
+
+            if (!email) {
+                this.showStatus('Vui lòng nhập địa chỉ Email!', false);
+                return;
+            }
+
+            if (!hCaptchaToken) {
+                this.showStatus('Vui lòng tích hoàn thành xác minh Captcha!', false);
+                return;
+            }
+
+            this.sendBtn.disabled = true;
+            this.showStatus('Đang xác minh và gửi email...', true);
+
+            try {
+                const response = await fetch(this.workerUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        hCaptchaToken: hCaptchaToken
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showStatus(result.message || 'Mã xác minh đã được gửi vào Email!', true);
+                } else {
+                    this.showStatus(result.message || 'Xác minh thất bại. Thử lại!', false);
+                }
+            } catch (error) {
+                this.showStatus('Lỗi kết nối tới Server. Vui lòng thử lại!', false);
+            } finally {
+                this.sendBtn.disabled = false;
+                if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
+            }
+        }
+    }
+
+    // Khởi tạo
+    window.addEventListener('DOMContentLoaded', () => {
+        new CaptchaAuthManager({
+            siteKey: "09f81f90-6c38-4f40-abb4-0e24d0a6f834",
+            workerUrl: "https://withered-morning-f487.cammanhtuong.workers.dev",
+            emailInputId: "emailInput",
+            sendBtnId: "sendBtn",
+            statusDivId: "status"
+        });
+    });
+    </script>
+
+</body>
+</html>
