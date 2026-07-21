@@ -3,146 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Xác Minh Bảo Mật</title>
+  <title>Xác Minh OTP</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 24px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 8px;
-      font-size: 1.5rem;
-    }
-    p.subtitle {
-      text-align: center;
-      color: #94a3b8;
-      font-size: 0.875rem;
-      margin-bottom: 20px;
-    }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    label {
-      display: block;
-      font-size: 0.875rem;
-      margin-bottom: 6px;
-      color: #cbd5e1;
-    }
-    input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid #475569;
-      background-color: #0f172a;
-      color: #fff;
-      font-size: 1rem;
-      outline: none;
-    }
-    input:focus {
-      border-color: #3b82f6;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      background-color: #2563eb;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: background-color 0.2s;
-    }
-    button:hover {
-      background-color: #1d4ed8;
-    }
-    button:disabled {
-      background-color: #64748b;
-      cursor: not-allowed;
-    }
-    .message {
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      text-align: center;
-      margin-bottom: 16px;
-      display: none;
-    }
-    .message.error {
-      background-color: #7f1d1d;
-      color: #fca5a5;
-      display: block;
-    }
-    .message.success {
-      background-color: #14532d;
-      color: #86efac;
-      display: block;
-    }
-    .step {
-      display: none;
-    }
-    .step.active {
-      display: block;
-    }
+    body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #1e293b; padding: 24px; border-radius: 12px; width: 100%; max-width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: center; }
+    h2 { margin-bottom: 8px; font-size: 1.25rem; }
+    p { color: #94a3b8; font-size: 0.875rem; margin-bottom: 20px; }
+    input { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; box-sizing: border-box; }
+    button { width: 100%; padding: 10px; border-radius: 6px; border: none; background: #2563eb; color: #fff; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #64748b; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .message { margin-top: 12px; font-size: 0.85rem; padding: 8px; border-radius: 4px; }
+    .error { background: #7f1d1d; color: #fca5a5; }
+    .success { background: #14532d; color: #86efac; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <div id="msgBox" class="message"></div>
-
     <!-- Bước 1: Nhập Email -->
     <div id="step1" class="step active">
       <h2>Xác Minh Bảo Mật</h2>
-      <p class="subtitle">Nhập email của bạn để nhận mã OTP xác minh</p>
-      
+      <p>Nhập email của bạn để nhận mã OTP xác minh</p>
       <form id="formStep1">
-        <div class="form-group">
-          <label for="email">Địa chỉ Email</label>
-          <input type="email" id="email" placeholder="example@domain.com" required>
-        </div>
-
+        <input type="email" id="email" placeholder="Địa chỉ Email" required />
         <button type="submit" id="btnSendOtp">Gửi Mã Xác Thực</button>
       </form>
     </div>
 
-    <!-- Bước 2: Nhập mã OTP -->
+    <!-- Bước 2: Nhập OTP -->
     <div id="step2" class="step">
-      <h2>Nhập Mã Xác Thực</h2>
-      <p class="subtitle">Mã OTP gồm 6 chữ số đã được gửi đến email của bạn</p>
-      
+      <h2>Nhập Mã OTP</h2>
+      <p>Mã xác minh đã được gửi đến email của bạn</p>
       <form id="formStep2">
-        <div class="form-group">
-          <label for="otp">Mã OTP</label>
-          <input type="text" id="otp" maxlength="6" placeholder="123456" required style="text-align: center; letter-spacing: 4px; font-weight: bold;">
-        </div>
-
+        <input type="text" id="otp" placeholder="Nhập mã OTP (6 số)" required maxlength="6" />
         <button type="submit" id="btnVerifyOtp">Xác Nhận & Truy Cập</button>
       </form>
     </div>
+
+    <div id="msgBox" class="message" style="display:none;"></div>
   </div>
+
+  <!-- Tích hợp F12 Eruda hỗ trợ debug trực tiếp trên Cốc Cốc Mobile -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
 
   <script>
     const WORKER_URL = "https://withered-morning-f487.cammanhtuong.workers.dev";
@@ -152,6 +57,7 @@
       const msgBox = document.getElementById("msgBox");
       msgBox.innerText = text;
       msgBox.className = "message " + (isError ? "error" : "success");
+      msgBox.style.display = "block";
     }
 
     function clearMessage() {
@@ -159,7 +65,7 @@
       msgBox.style.display = "none";
     }
 
-    // Xử lý Bước 1: Gửi OTP
+    // Bước 1: Gửi OTP
     document.getElementById("formStep1").addEventListener("submit", async (e) => {
       e.preventDefault();
       clearMessage();
@@ -181,13 +87,15 @@
         const data = await res.json();
 
         if (res.ok) {
-          showMessage("Mã OTP đã được gửi! Vui lòng kiểm tra hộp thư.", false);
+          alert("Gửi thành công! Đang chuyển sang nhập OTP.");
           document.getElementById("step1").classList.remove("active");
           document.getElementById("step2").classList.add("active");
         } else {
-          showMessage(data.error || "Gửi mã thất bại. Vui lòng thử lại!");
+          alert("Lỗi từ Worker: " + (data.error || JSON.stringify(data)));
+          showMessage(data.error || "Gửi mã thất bại.");
         }
       } catch (err) {
+        alert("Lỗi kết nối (Fetch error): " + err.message);
         showMessage("Không thể kết nối đến Cloudflare Worker.");
       } finally {
         btn.innerText = "Gửi Mã Xác Thực";
@@ -195,7 +103,7 @@
       }
     });
 
-    // Xử lý Bước 2: Xác minh OTP
+    // Bước 2: Xác minh OTP
     document.getElementById("formStep2").addEventListener("submit", async (e) => {
       e.preventDefault();
       clearMessage();
@@ -216,15 +124,14 @@
         const data = await res.json();
 
         if (res.ok && data.success) {
-          showMessage("Xác thực thành công! Đang chuyển hướng...", false);
-          setTimeout(() => {
-            window.location.href = "https://google.com";
-          }, 1500);
+          alert("Xác thực thành công!");
+          window.location.href = "https://google.com"; // Trang đích sau khi hoàn tất
         } else {
+          alert("Lỗi OTP: " + (data.error || "Mã không đúng"));
           showMessage(data.error || "Mã OTP không chính xác.");
         }
       } catch (err) {
-        showMessage("Không thể kết nối đến máy chủ.");
+        alert("Lỗi kết nối xác minh: " + err.message);
       } finally {
         btn.innerText = "Xác Nhận & Truy Cập";
         btn.disabled = false;
