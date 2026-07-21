@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Xác Minh Bảo Mật</title>
-  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
   <style>
     * {
       box-sizing: border-box;
@@ -63,11 +62,6 @@
     input:focus {
       border-color: #3b82f6;
     }
-    .h-captcha {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
     button {
       width: 100%;
       padding: 12px;
@@ -78,6 +72,7 @@
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
+      margin-top: 10px;
       transition: background-color 0.2s;
     }
     button:hover {
@@ -118,18 +113,16 @@
   <div class="card">
     <div id="msgBox" class="message"></div>
 
-    <!-- Bước 1: Nhập Email & Captcha -->
+    <!-- Bước 1: Nhập Email -->
     <div id="step1" class="step active">
       <h2>Xác Minh Bảo Mật</h2>
-      <p class="subtitle">Vui lòng xác minh bạn không phải là máy tính</p>
+      <p class="subtitle">Nhập email của bạn để nhận mã OTP xác minh</p>
       
       <form id="formStep1">
         <div class="form-group">
           <label for="email">Địa chỉ Email</label>
           <input type="email" id="email" placeholder="example@domain.com" required>
         </div>
-
-        <div class="h-captcha" data-sitekey="d076288e-14b6-4e8e-87ae-8c6eae223688"></div>
 
         <button type="submit" id="btnSendOtp">Gửi Mã Xác Thực</button>
       </form>
@@ -152,9 +145,7 @@
   </div>
 
   <script>
-    // ⚠️ LƯU Ý: Thay URL Cloudflare Worker của bạn vào đây
     const WORKER_URL = "https://withered-morning-f487.cammanhtuong.workers.dev";
-
     let userEmail = "";
 
     function showMessage(text, isError = true) {
@@ -168,29 +159,23 @@
       msgBox.style.display = "none";
     }
 
-    // Xử lý gửi Form Bước 1
+    // Xử lý Bước 1: Gửi OTP
     document.getElementById("formStep1").addEventListener("submit", async (e) => {
       e.preventDefault();
       clearMessage();
 
       const email = document.getElementById("email").value.trim();
-      const hcaptchaResp = hcaptcha.getResponse();
-
-      if (!hcaptchaResp) {
-        showMessage("Vui lòng tích chọn xác minh hCaptcha!");
-        return;
-      }
-
       userEmail = email;
+
       const btn = document.getElementById("btnSendOtp");
-      btn.innerText = "Đang xử lý...";
+      btn.innerText = "Đang gửi email...";
       btn.disabled = true;
 
       try {
         const res = await fetch(`${WORKER_URL}/api/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, captchaToken: hcaptchaResp })
+          body: JSON.stringify({ email })
         });
 
         const data = await res.json();
@@ -201,18 +186,16 @@
           document.getElementById("step2").classList.add("active");
         } else {
           showMessage(data.error || "Gửi mã thất bại. Vui lòng thử lại!");
-          if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
         }
       } catch (err) {
-        showMessage("Không thể kết nối đến máy chủ xác thực.");
-        if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
+        showMessage("Không thể kết nối đến Cloudflare Worker.");
       } finally {
         btn.innerText = "Gửi Mã Xác Thực";
         btn.disabled = false;
       }
     });
 
-    // Xử lý gửi Form Bước 2
+    // Xử lý Bước 2: Xác minh OTP
     document.getElementById("formStep2").addEventListener("submit", async (e) => {
       e.preventDefault();
       clearMessage();
@@ -220,7 +203,7 @@
       const otp = document.getElementById("otp").value.trim();
       const btn = document.getElementById("btnVerifyOtp");
 
-      btn.innerText = "Đang xác thực...";
+      btn.innerText = "Đang kiểm tra...";
       btn.disabled = true;
 
       try {
@@ -235,13 +218,13 @@
         if (res.ok && data.success) {
           showMessage("Xác thực thành công! Đang chuyển hướng...", false);
           setTimeout(() => {
-            window.location.href = data.redirectUrl || "https://google.com";
+            window.location.href = "https://google.com";
           }, 1500);
         } else {
-          showMessage(data.error || "Mã OTP không hợp lệ hoặc đã hết hạn.");
+          showMessage(data.error || "Mã OTP không chính xác.");
         }
       } catch (err) {
-        showMessage("Không thể kết nối đến máy chủ xác thực.");
+        showMessage("Không thể kết nối đến máy chủ.");
       } finally {
         btn.innerText = "Xác Nhận & Truy Cập";
         btn.disabled = false;
