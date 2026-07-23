@@ -1,188 +1,115 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Xác minh OTP</title>
-  <!-- hCaptcha SDK -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xác thực OTP Anti-Bot</title>
   <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-  <!-- Eruda Debugger (Công cụ soi lỗi trên điện thoại) -->
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
-  
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f4f7f6; margin: 0; padding: 15px; }
-    .card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-    .step { display: none; }
-    .step.active { display: block; }
-    h2 { margin-top: 0; color: #333; }
-    p { color: #666; font-size: 14px; }
-    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
-    button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    .resend-btn { background: #6c757d; margin-top: 10px; }
-    .timer-text { font-size: 13px; color: #555; text-align: center; margin-top: 6px; }
-    .h-captcha { display: flex; justify-content: center; margin: 10px 0; }
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; margin: 0; }
+    .card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; }
+    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+    button:disabled { background-color: #aaa; cursor: not-allowed; }
+    .h-captcha { margin: 15px 0; display: flex; justify-content: center; }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <!-- BƯỚC 1: NHẬP EMAIL & CAPTCHA -->
-  <div id="step1" class="step active">
+  <div class="card">
     <h2>Xác thực Email</h2>
-    <p>Vui lòng nhập email để nhận mã xác thực OTP.</p>
-    <input type="email" id="emailInput" placeholder="Ví dụ: name@gmail.com" required />
     
-    <!-- Widget hCaptcha -->
+    <input type="email" id="emailInput" placeholder="Nhập địa chỉ Email..." required />
+
     <div class="h-captcha" data-sitekey="d076288e-14b6-4e8e-87ae-8c6eae223688"></div>
-    
-    <button id="sendOtpBtn" onclick="requestOTP()" style="margin-top: 10px;">Gửi mã OTP</button>
+
+    <button id="sendBtn" onclick="requestOTP()">Gửi mã OTP</button>
+
+    <div id="otpSection" style="display:none; margin-top: 20px;">
+      <p style="font-size: 13px; color: #666;">Mã OTP có hiệu lực trong 30 phút.</p>
+      <input type="text" id="otpInput" placeholder="Nhập 6 số OTP" maxlength="6" />
+      <button onclick="verifyOTP()">Xác nhận OTP</button>
+    </div>
   </div>
 
-  <!-- BƯỚC 2: NHẬP MÃ OTP -->
-  <div id="step2" class="step">
-    <h2>Nhập mã OTP</h2>
-    <p>Mã OTP (có hiệu lực 15 phút) đã được gửi đến email của bạn.</p>
-    <input type="text" id="otpInput" placeholder="Nhập mã 6 chữ số" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: bold;" />
-    
-    <button onclick="verifyOTP()">Xác thực & Tiếp tục</button>
-    
-    <!-- NÚT RESEND (GỬI LẠI MÃ) -->
-    <button id="resendBtn" class="resend-btn" onclick="handleResendCode()">Gửi lại mã OTP</button>
-    <div id="resendTimer" class="timer-text"></div>
-  </div>
-</div>
+  <script>
+    const WORKER_URL = "https://withered-morning-f487.cammanhtuong.workers.dev";
 
-<script>
-  // Chú ý: URL không chứa dấu "/" ở cuối cùng
-  const WORKER_URL = "https://withered-morning-f487.cammanhtuong.workers.dev"; 
+    // 1. GỬI MÃ OTP
+    async function requestOTP() {
+      const email = document.getElementById("emailInput").value.trim();
+      const captchaToken = window.hcaptcha ? hcaptcha.getResponse() : "";
 
-  let resendCooldown = 0;
-  let resendInterval = null;
-
-  // 1. Hàm gửi yêu cầu OTP
-  async function requestOTP() {
-    const email = document.getElementById('emailInput').value.trim();
-    const captchaResponse = typeof hcaptcha !== 'undefined' ? hcaptcha.getResponse() : '';
-
-    if (!email) return alert("Vui lòng nhập Email!");
-    if (!captchaResponse) return alert("Vui lòng hoàn thành hCaptcha!");
-
-    const btn = document.getElementById('sendOtpBtn');
-    btn.disabled = true;
-    btn.innerText = "Đang gửi...";
-
-    try {
-      const res = await fetch(`${WORKER_URL}/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, captchaToken: captchaResponse })
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        alert("Đã gửi OTP thành công!");
-        document.getElementById('step1').classList.remove('active');
-        document.getElementById('step2').classList.add('active');
-        startResendCooldown(60);
-      } else {
-        alert("Lỗi từ máy chủ: " + (data.message || "Gửi OTP thất bại"));
-        if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
+      if (!email) {
+        alert("Vui lòng nhập Email!");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      alert("Chi tiết lỗi kết nối: " + err.message + "\nURL: " + WORKER_URL + "/send-otp");
-      if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Gửi mã OTP";
+
+      const sendBtn = document.getElementById("sendBtn");
+      sendBtn.disabled = true;
+      sendBtn.innerText = "Đang gửi...";
+
+      try {
+        const res = await fetch(`${WORKER_URL}/send-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, captchaToken })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          alert("Mã OTP đã được gửi về email của bạn!");
+          // Lưu Token mã hóa OTP vào bộ nhớ trình duyệt
+          sessionStorage.setItem("otpToken", data.otpToken);
+          document.getElementById("otpSection").style.display = "block";
+        } else {
+          alert("Lỗi từ máy chủ: " + data.message);
+        }
+      } catch (err) {
+        alert("Lỗi kết nối: " + err.message);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerText = "Gửi mã OTP";
+        if (window.hcaptcha) hcaptcha.reset();
+      }
     }
-  }
 
-  // 2. Hàm xử lý nút Gửi lại mã
-  async function handleResendCode() {
-    if (resendCooldown > 0) return;
+    // 2. XÁC NHẬN OTP
+    async function verifyOTP() {
+      const email = document.getElementById("emailInput").value.trim();
+      const otp = document.getElementById("otpInput").value.trim();
+      const otpToken = sessionStorage.getItem("otpToken");
 
-    const email = document.getElementById('emailInput').value.trim();
-    const resendBtn = document.getElementById('resendBtn');
-    const resendTimer = document.getElementById('resendTimer');
-    
-    resendBtn.disabled = true;
-    resendTimer.innerText = "Đang gửi lại mã...";
-
-    try {
-      const res = await fetch(`${WORKER_URL}/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, isResend: true }) 
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        alert("Mã OTP mới đã gửi đến Email của bạn!");
-        startResendCooldown(60);
-      } else {
-        alert("Gửi lại thất bại: " + (data.message || "Lỗi hệ thống"));
-        resendBtn.disabled = false;
-        resendTimer.innerText = "";
+      if (!otp) {
+        alert("Vui lòng nhập mã OTP!");
+        return;
       }
-    } catch (err) {
-      alert("Lỗi mạng khi kết nối đến máy chủ!");
-      resendBtn.disabled = false;
-      resendTimer.innerText = "";
+
+      if (!otpToken) {
+        alert("Thiếu token xác thực! Vui lòng bấm gửi lại mã OTP.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${WORKER_URL}/verify-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp, otpToken })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          alert("🎉 Xác thực thành công!");
+          sessionStorage.removeItem("otpToken");
+        } else {
+          alert("❌ Xác thực thất bại: " + data.message);
+        }
+      } catch (err) {
+        alert("Lỗi hệ thống: " + err.message);
+      }
     }
-  }
-
-  // 3. Hàm đếm ngược cooldown 60s
-  function startResendCooldown(seconds) {
-    const resendBtn = document.getElementById('resendBtn');
-    const resendTimer = document.getElementById('resendTimer');
-    
-    resendCooldown = seconds;
-    resendBtn.disabled = true;
-
-    clearInterval(resendInterval);
-    resendInterval = setInterval(() => {
-      resendCooldown--;
-      if (resendCooldown > 0) {
-        resendTimer.innerText = `Vui lòng đợi ${resendCooldown}s để gửi lại`;
-      } else {
-        clearInterval(resendInterval);
-        resendBtn.disabled = false;
-        resendTimer.innerText = "";
-      }
-    }, 1000);
-  }
-
-  // 4. Hàm xác thực mã OTP
-  async function verifyOTP() {
-    const email = document.getElementById('emailInput').value.trim();
-    const otp = document.getElementById('otpInput').value.trim();
-
-    if (!otp || otp.length !== 6) return alert("Vui lòng nhập đủ 6 chữ số OTP!");
-
-    try {
-      const res = await fetch(`${WORKER_URL}/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp })
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        alert("Xác thực thành công!");
-        // Chuyển hướng hoặc xử lý token mã hóa AES thu được
-        console.log("Token xác thực AES:", data.token);
-      } else {
-        alert("Xác thực thất bại: " + (data.message || "Mã OTP không đúng!"));
-      }
-    } catch (err) {
-      alert("Lỗi kết nối khi xác thực OTP!");
-    }
-  }
-</script>
+  </script>
 </body>
 </html>
