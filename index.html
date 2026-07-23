@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,52 +7,57 @@
   <title>Xác minh OTP</title>
   <!-- hCaptcha SDK -->
   <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-  <!-- Eruda cho Debug (Nếu cần) -->
+  <!-- Eruda Debugger (Công cụ soi lỗi trên điện thoại) -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
   
   <style>
-    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f4f7f6; margin: 0; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f4f7f6; margin: 0; padding: 15px; }
     .card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
     .step { display: none; }
     .step.active { display: block; }
-    input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
-    button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    h2 { margin-top: 0; color: #333; }
+    p { color: #666; font-size: 14px; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+    button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
     button:disabled { background: #ccc; cursor: not-allowed; }
     .resend-btn { background: #6c757d; margin-top: 10px; }
-    .timer-text { font-size: 13px; color: #555; text-align: center; margin-top: 5px; }
+    .timer-text { font-size: 13px; color: #555; text-align: center; margin-top: 6px; }
+    .h-captcha { display: flex; justify-content: center; margin: 10px 0; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <!-- STEP 1: NHẬP EMAIL & CAPTCHA -->
+  <!-- BƯỚC 1: NHẬP EMAIL & CAPTCHA -->
   <div id="step1" class="step active">
     <h2>Xác thực Email</h2>
-    <input type="email" id="emailInput" placeholder="Nhập địa chỉ Email của bạn" required />
+    <p>Vui lòng nhập email để nhận mã xác thực OTP.</p>
+    <input type="email" id="emailInput" placeholder="Ví dụ: name@gmail.com" required />
     
-    <!-- hCaptcha với Sitekey của bạn -->
-    <div class="h-captcha" data-sitekey="d076288e-14b6-4e8e-87ae-8c6eae223688" id="hcaptcha-widget"></div>
+    <!-- Widget hCaptcha -->
+    <div class="h-captcha" data-sitekey="d076288e-14b6-4e8e-87ae-8c6eae223688"></div>
     
-    <button id="sendOtpBtn" onclick="requestOTP()" style="margin-top: 15px;">Gửi mã OTP</button>
+    <button id="sendOtpBtn" onclick="requestOTP()" style="margin-top: 10px;">Gửi mã OTP</button>
   </div>
 
-  <!-- STEP 2: NHẬP MÃ OTP -->
+  <!-- BƯỚC 2: NHẬP MÃ OTP -->
   <div id="step2" class="step">
     <h2>Nhập mã OTP</h2>
-    <p>Mã OTP (15 phút) đã được gửi đến email của bạn.</p>
-    <input type="text" id="otpInput" placeholder="Nhập mã 6 chữ số" maxlength="6" />
+    <p>Mã OTP (có hiệu lực 15 phút) đã được gửi đến email của bạn.</p>
+    <input type="text" id="otpInput" placeholder="Nhập mã 6 chữ số" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: bold;" />
     
     <button onclick="verifyOTP()">Xác thực & Tiếp tục</button>
     
-    <!-- NÚT GỬI LAI MÃ (RESEND) -->
+    <!-- NÚT RESEND (GỬI LẠI MÃ) -->
     <button id="resendBtn" class="resend-btn" onclick="handleResendCode()">Gửi lại mã OTP</button>
     <div id="resendTimer" class="timer-text"></div>
   </div>
 </div>
 
 <script>
-  // Đổi thành URL Worker thực tế của bạn
+  // Chú ý: URL không chứa dấu "/" ở cuối cùng
   const WORKER_URL = "https://withered-morning-f487.cammanhtuong.workers.dev"; 
 
   let resendCooldown = 0;
@@ -60,7 +66,7 @@
   // 1. Hàm gửi yêu cầu OTP
   async function requestOTP() {
     const email = document.getElementById('emailInput').value.trim();
-    const captchaResponse = hcaptcha.getResponse();
+    const captchaResponse = typeof hcaptcha !== 'undefined' ? hcaptcha.getResponse() : '';
 
     if (!email) return alert("Vui lòng nhập Email!");
     if (!captchaResponse) return alert("Vui lòng hoàn thành hCaptcha!");
@@ -81,33 +87,33 @@
         alert("Đã gửi OTP thành công!");
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
-        startResendCooldown(60); // Đếm ngược 60s
+        startResendCooldown(60);
       } else {
-        alert("Lỗi: " + (data.message || "Gửi OTP thất bại"));
-        hcaptcha.reset();
+        alert("Lỗi từ máy chủ: " + (data.message || "Gửi OTP thất bại"));
+        if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
       }
     } catch (err) {
       console.error(err);
-      alert("Khởi tạo gửi OTP thất bại!");
-      hcaptcha.reset();
+      alert("Chi tiết lỗi kết nối: " + err.message + "\nURL: " + WORKER_URL + "/send-otp");
+      if (typeof hcaptcha !== 'undefined') hcaptcha.reset();
     } finally {
       btn.disabled = false;
       btn.innerText = "Gửi mã OTP";
     }
   }
 
-  // 2. Hàm xử lý khi bấm nút Gửi lại mã
+  // 2. Hàm xử lý nút Gửi lại mã
   async function handleResendCode() {
     if (resendCooldown > 0) return;
 
     const email = document.getElementById('emailInput').value.trim();
     const resendBtn = document.getElementById('resendBtn');
+    const resendTimer = document.getElementById('resendTimer');
     
     resendBtn.disabled = true;
-    document.getElementById('resendTimer').innerText = "Đang gửi lại mã...";
+    resendTimer.innerText = "Đang gửi lại mã...";
 
     try {
-      // Yêu cầu gửi lại OTP
       const res = await fetch(`${WORKER_URL}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,16 +125,18 @@
         alert("Mã OTP mới đã gửi đến Email của bạn!");
         startResendCooldown(60);
       } else {
-        alert("Không thể gửi lại: " + (data.message || "Lỗi hệ thống"));
+        alert("Gửi lại thất bại: " + (data.message || "Lỗi hệ thống"));
         resendBtn.disabled = false;
+        resendTimer.innerText = "";
       }
     } catch (err) {
-      alert("Lỗi khi kết nối đến máy chủ!");
+      alert("Lỗi mạng khi kết nối đến máy chủ!");
       resendBtn.disabled = false;
+      resendTimer.innerText = "";
     }
   }
 
-  // 3. Đếm ngược Cooldown nút Resend
+  // 3. Hàm đếm ngược cooldown 60s
   function startResendCooldown(seconds) {
     const resendBtn = document.getElementById('resendBtn');
     const resendTimer = document.getElementById('resendTimer');
@@ -149,7 +157,7 @@
     }, 1000);
   }
 
-  // 4. Hàm xác nhận mã OTP
+  // 4. Hàm xác thực mã OTP
   async function verifyOTP() {
     const email = document.getElementById('emailInput').value.trim();
     const otp = document.getElementById('otpInput').value.trim();
@@ -166,13 +174,13 @@
 
       if (res.ok && data.success) {
         alert("Xác thực thành công!");
-        // data.token chứa AES token đã mã hóa -> chuyển sang trang tiếp theo
-        window.location.href = `https://your-next-site.com/welcome?token=${encodeURIComponent(data.token)}`;
+        // Chuyển hướng hoặc xử lý token mã hóa AES thu được
+        console.log("Token xác thực AES:", data.token);
       } else {
-        alert("Xác thực thất bại: " + (data.message || "Mã OTP không đúng hoặc đã hết hạn"));
+        alert("Xác thực thất bại: " + (data.message || "Mã OTP không đúng!"));
       }
     } catch (err) {
-      alert("Lỗi hệ thống khi xác thực!");
+      alert("Lỗi kết nối khi xác thực OTP!");
     }
   }
 </script>
